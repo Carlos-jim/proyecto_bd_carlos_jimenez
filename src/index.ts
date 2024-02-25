@@ -7,6 +7,7 @@ import { Pool } from "pg";
 import "reflect-metadata";
 import { Board } from "./dto/board.dto";
 import { User } from "./dto/user.dto";
+import { List } from "./dto/list.dto";
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ const app: Express = express();
 const port = process.env.PORT || 3000;
 app.use(express.json());
 
+//Endpoint para obtener todos los usuarios
 app.get("/users", async (req: Request, res: Response) => {
   try {
     const text = "SELECT id, name, email FROM users";
@@ -32,6 +34,7 @@ app.get("/users", async (req: Request, res: Response) => {
   }
 });
 
+//Endpoint para crear un nuevo usuario
 app.post("/users", async (req: Request, res: Response) => {
   let userDto: User = plainToClass(User, req.body);
   try {
@@ -46,6 +49,7 @@ app.post("/users", async (req: Request, res: Response) => {
   }
 });
 
+// Endpoint para obtener todos los tableros donde el usuario es administrador
 app.get("/boards", async (req: Request, res: Response) => {
   try {
     const text =
@@ -57,6 +61,7 @@ app.get("/boards", async (req: Request, res: Response) => {
   }
 });
 
+// Endpoint para crear un nuevo tablero y asociarlo con un usuario administrador
 app.post("/boards", async (req: Request, res: Response) => {
   let boardDto: Board = plainToClass(Board, req.body);
   const client = await pool.connect();
@@ -86,6 +91,50 @@ app.post("/boards", async (req: Request, res: Response) => {
     client.release();
   }
 });
+
+// Endpoint para crear una nueva lista
+app.post("/lists", async (req: Request, res: Response) => {
+  let listDto: List = plainToClass(List, req.body);
+  try {
+    await validateOrReject(listDto);
+
+    const text = "INSERT INTO lists(name, boardId) VALUES($1, $2) RETURNING *";
+    const values = [listDto.name, listDto.boardId];
+    const result = await pool.query(text, values);
+    res.status(201).json(result.rows[0]);
+  } catch (errors) {
+    return res.status(422).json(errors);
+  }
+});
+
+// Endpoint para obtener una tarjeta específica y el usuario que la creó
+app.get("/cards/:id", async (req: Request, res: Response) => {
+  try {
+    const text = `SELECT c.id, c.name, u.id as userId, u.name as userName 
+                  FROM cards c 
+                  JOIN users u ON u.id = c.userId 
+                  WHERE c.id = $1`;
+    const values = [req.params.id];
+    const result = await pool.query(text, values);
+    res.status(200).json(result.rows[0]);
+  } catch (errors) {
+    return res.status(400).json(errors);
+  }
+});
+
+// Endpoint para obtener las listas de un tablero específico
+app.get("/boards/:boardId/lists", async (req: Request, res: Response) => {
+  const { boardId } = req.params;
+  try {
+    const text = "SELECT * FROM lists WHERE boardId = $1";
+    const values = [boardId];
+    const result = await pool.query(text, values);
+    res.status(200).json(result.rows);
+  } catch (errors) {
+    return res.status(400).json(errors);
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
