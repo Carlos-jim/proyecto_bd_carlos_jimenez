@@ -135,6 +135,20 @@ app.get("/boards/:boardId/lists", async (req: Request, res: Response) => {
   }
 });
 
+// Endpoint para asignar un usuario a una tarjeta
+app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => {
+  const { cardId, userId } = req.params;
+  try {
+    const text = "INSERT INTO card_users(cardId, userId) VALUES($1, $2)";
+    const values = [cardId, userId];
+    await pool.query(text, values);
+    res.status(201).json({ message: "User assigned to card successfully." });
+  } catch (errors) {
+    return res.status(400).json(errors);
+  }
+});
+
+
 
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
