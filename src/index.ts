@@ -167,10 +167,12 @@ app.post("/lists", async (req: Request, res: Response) => {
 app.get("/cards/:id", async (req: Request, res: Response) => {
   try {
     // Se define la consulta SQL para obtener una tarjeta específica y el usuario que la creó
-    const text = `SELECT c.id, c.name, u.id as userId, u.name as userName 
-                  FROM cards c 
-                  JOIN users u ON u.id = c.userId 
-                  WHERE c.id = $1`;
+    const text = `SELECT c.id, c.title, u.id as userId, u.name as userName 
+              FROM cards c 
+              JOIN card_users cu ON cu.cardId = c.id
+              JOIN users u ON u.id = cu.userId 
+              WHERE c.id = $1 AND cu.isOwner = true`;
+
     const values = [req.params.id];
     
     // Se ejecuta la consulta SQL
@@ -208,7 +210,20 @@ app.get("/boards/:boardId/lists", async (req: Request, res: Response) => {
 // Endpoint para asignar un usuario a una tarjeta
 app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => {
   const { cardId, userId } = req.params;
+  
   try {
+    // Se verifica si la tarjeta y el usuario existen en la base de datos
+    const cardExists = await pool.query("SELECT * FROM cards WHERE id = $1", [cardId]);
+    const userExists = await pool.query("SELECT * FROM users WHERE id = $1", [userId]);
+    
+    if (cardExists.rowCount === 0) {
+      return res.status(404).json({ message: "Card not found." });
+    }
+    
+    if (userExists.rowCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    
     // Se define la consulta SQL para asignar un usuario a una tarjeta
     const text = "INSERT INTO card_users(cardId, userId) VALUES($1, $2)";
     const values = [cardId, userId];
@@ -224,6 +239,7 @@ app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => 
   }
 });
 
+
 //Crear una nuevatarjeta en una lista especiica
 app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
   const { listId } = req.params;
@@ -234,16 +250,23 @@ app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
     await validateOrReject(cardDto);
 
     // Se define la consulta SQL para insertar una nueva tarjeta en una lista específica
-    const text = "INSERT INTO cards(name, listId, userId) VALUES($1, $2, $3) RETURNING *";
-    const values = [cardDto.name, listId, cardDto.userId];
+    const text = "INSERT INTO cards(title, listId) VALUES($1, $2) RETURNING *";
+    const values = [cardDto.title, listId];
     
     // Se ejecuta la consulta SQL
     const result = await pool.query(text, values);
+
+    // Se define la consulta SQL para asignar el usuario a la nueva tarjeta
+    const text2 = "INSERT INTO card_users(cardId, userId) VALUES($1, $2)";
+    const values2 = [result.rows[0].id, cardDto.userId];
     
-    // Si la consulta es exitosa, se devuelve un estado HTTP 201 (Created) y la nueva tarjeta
+    // Se ejecuta la segunda consulta SQL
+    await pool.query(text2, values2);
+    
+    // Si las consultas son exitosas, se devuelve un estado HTTP 201 (Created) y la nueva tarjeta
     res.status(201).json(result.rows[0]);
   } catch (errors) {
-    // Si ocurre un error durante la consulta o la validación, se devuelve un estado HTTP 400 (Bad Request) y los detalles del error
+    // Si ocurre un error durante las consultas o la validación, se devuelve un estado HTTP 400 (Bad Request) y los detalles del error
     return res.status(400).json(errors);
   }
 });
