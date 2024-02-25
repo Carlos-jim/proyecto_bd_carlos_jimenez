@@ -8,6 +8,7 @@ import "reflect-metadata";
 import { Board } from "./dto/board.dto";
 import { User } from "./dto/user.dto";
 import { List } from "./dto/list.dto";
+import { Card } from "./dto/card.dto";
 
 dotenv.config();
 
