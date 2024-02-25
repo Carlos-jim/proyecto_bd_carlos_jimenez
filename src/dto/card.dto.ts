@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsNumber } from "class-validator";
+import { IsNotEmpty, IsUUID } from "class-validator";
 
 export class Card {
   @IsNotEmpty()
   name: string;
 
-  @IsNumber()
-  userId: number;
+  @IsUUID()
+  userId: string;
 }

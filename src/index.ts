@@ -148,6 +148,21 @@ app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => 
   }
 });
 
+app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
+  const { listId } = req.params;
+  let cardDto: Card = plainToClass(Card, req.body);
+  
+  try {
+    await validateOrReject(cardDto);
+
+    const text = "INSERT INTO cards(name, listId, userId) VALUES($1, $2, $3) RETURNING *";
+    const values = [cardDto.name, listId, cardDto.userId];
+    const result = await pool.query(text, values);
+    res.status(201).json(result.rows[0]);
+  } catch (errors) {
+    return res.status(400).json(errors);
+  }
+});
 
 
 app.listen(port, () => {
