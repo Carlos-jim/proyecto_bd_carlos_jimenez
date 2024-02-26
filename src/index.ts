@@ -240,7 +240,7 @@ app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => 
 });
 
 
-//Crear una nuevatarjeta en una lista especiica
+//Crear una nueva tarjeta en una lista especiica
 app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
   const { listId } = req.params;
   let cardDto: Card = plainToClass(Card, req.body);
