@@ -9,6 +9,7 @@ import { Board } from "./dto/board.dto";
 import { User } from "./dto/user.dto";
 import { List } from "./dto/list.dto";
 import { Card } from "./dto/card.dto";
+import { CardUser } from "./dto/cardUser.dto";
 
 dotenv.config();
 
@@ -219,22 +220,32 @@ app.get("/boards/:boardId/lists", async (req: Request, res: Response) => {
 });
 
 
-// Endpoint para asignar un usuario a una tarjeta (BIEN)
+// Endpoint para asignar un usuario a una tarjeta (BIEN, dto)
 app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => {
-  const { cardId } = req.params;
-  const { userId, isOwner } = req.body;
+  // Se convierte el cuerpo de la solicitud a un objeto CardUser
+  let cardUserDto: CardUser = plainToClass(CardUser, req.body);
+  cardUserDto.cardId = req.params.cardId;
+
   try {
+    // Se valida el objeto CardUser
+    await validateOrReject(cardUserDto);
+
+    // Se define la consulta SQL para asignar un usuario a una tarjeta
     const text = "INSERT INTO card_users(cardId, userId, isOwner) VALUES($1, $2, $3) RETURNING *";
-    const values = [cardId, userId, isOwner];
+    const values = [cardUserDto.cardId, cardUserDto.userId, cardUserDto.isOwner];
+    
+    // Se ejecuta la consulta SQL
     const result = await pool.query(text, values);
+    
+    // Si la consulta es exitosa, se devuelve un estado HTTP 201 (Created) y el nuevo usuario de la tarjeta
     res.status(201).json(result.rows[0]);
   } catch (errors) {
+    // Si ocurre un error durante la consulta o la validación, se devuelve un estado HTTP 422 (Unprocessable Entity) y los detalles del error
     return res.status(422).json(errors);
   }
 });
 
-
-// Ruta para crear una nueva tarjeta en una lista específica (BIEN)
+// Ruta para crear una nueva tarjeta en una lista específica (BIEN, COLOCAR DTO)
 app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
   // Extrae el listId de los parámetros de la ruta
   const { listId } = req.params;
