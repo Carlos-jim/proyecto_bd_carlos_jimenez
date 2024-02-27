@@ -17,10 +17,4 @@ export class Card {
   @IsNotEmpty()
   listId: string;
 
-  /*@IsDefined()
-  @IsUUID()
-  ownerUserId: string;
-
-  @IsNotEmpty()
-  userId: string;*/
 }

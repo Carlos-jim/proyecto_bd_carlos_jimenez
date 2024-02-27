@@ -164,7 +164,7 @@ app.post("/lists", async (req: Request, res: Response) => {
 });
 
 
-// Endpoint para obtener una tarjeta específica y el usuario que la creó (REVISAR)
+// Endpoint para obtener una tarjeta específica y el usuario que la creó (DOCUMENTAR)
 app.get("/cards/:cardId/users", async (req: Request, res: Response) => {
   const { cardId } = req.params;
   try {
@@ -220,7 +220,7 @@ app.get("/boards/:boardId/lists", async (req: Request, res: Response) => {
 });
 
 
-// Endpoint para asignar un usuario a una tarjeta (BIEN, dto)
+// Endpoint para asignar un usuario a una tarjeta (BIEN)
 app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => {
   // Se convierte el cuerpo de la solicitud a un objeto CardUser
   let cardUserDto: CardUser = plainToClass(CardUser, req.body);
@@ -271,6 +271,30 @@ app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
   }
 });
 
+/*
+app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
+  // Se convierte el cuerpo de la solicitud a un objeto Card
+  let cardDto: Card = plainToClass(Card, req.body);
+  
+  try {
+    // Se valida el objeto Card
+    await validateOrReject(cardDto);
+
+    // Se define la consulta SQL para insertar una nueva tarjeta en la lista especificada
+    const text = "INSERT INTO cards(title, description, due_date, listId) VALUES($1, $2, $3, $4) RETURNING *";
+    const values = [cardDto.title, cardDto.description, cardDto.due_date, cardDto.listId];
+    
+    // Se ejecuta la consulta SQL
+    const result = await pool.query(text, values);
+    
+    // Si la consulta es exitosa, se devuelve un estado HTTP 201 (Created) y la nueva tarjeta
+    res.status(201).json(result.rows[0]);
+  } catch (errors) {
+    // Si ocurre un error durante la consulta o la validación, se devuelve un estado HTTP 422 (Unprocessable Entity) y los detalles del error
+    return res.status(422).json(errors);
+  }
+});
+*/
 
 
 
