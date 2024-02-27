@@ -1,13 +1,14 @@
-import { IsNotEmpty, IsInt } from "class-validator";
-import { Expose, Type } from "class-transformer";
+import { IsNotEmpty, IsDefined, IsString, IsUUID, Length  } from "class-validator";
 
 export class List {
-  @Expose()
   @IsNotEmpty()
+  @IsString()
+  @IsDefined()
+  @Length(5, 30)
   name: string;
 
-  @Expose()
-  @Type(() => Number)
-  @IsInt()
-  boardId: number;
+  
+  @IsDefined()
+  @IsUUID()
+  boardId: string;
 }
