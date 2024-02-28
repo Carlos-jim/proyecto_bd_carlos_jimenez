@@ -247,26 +247,21 @@ app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => 
 
 // Ruta para crear una nueva tarjeta en una lista específica (BIEN, COLOCAR DTO)
 app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
-  // Extrae el listId de los parámetros de la ruta
   const { listId } = req.params;
 
-  // Extrae los campos title, description y due_date del cuerpo de la solicitud
-  const { title, description, due_date } = req.body;
+  // Agregar listId al cuerpo de la solicitud
+  req.body.listId = listId;
+  const cardDto: Card = plainToClass(Card, req.body);
 
   try {
-    // Define la consulta SQL para insertar una nueva tarjeta en la lista especificada
+    await validateOrReject(cardDto);
+
+    const { title, description, due_date } = cardDto;
     const text = "INSERT INTO cards(title, description, due_date, listId) VALUES($1, $2, $3, $4) RETURNING *";
-
-    // Define los valores que se insertarán en la consulta SQL
     const values = [title, description, due_date, listId];
-
-    // Ejecuta la consulta SQL
     const result = await pool.query(text, values);
-
-    // Si la consulta se ejecuta con éxito, devuelve un estado HTTP 201 (Created) y la nueva tarjeta
     res.status(201).json(result.rows[0]);
   } catch (errors) {
-    // Si ocurre un error durante la ejecución de la consulta, devuelve un estado HTTP 422 (Unprocessable Entity) y los detalles del error
     return res.status(422).json(errors);
   }
 });

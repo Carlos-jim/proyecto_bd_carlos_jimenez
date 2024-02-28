@@ -1,4 +1,4 @@
-import { IsNotEmpty,IsDefined ,Length, IsUUID, IsDateString } from "class-validator";
+import { IsNotEmpty,IsDefined ,Length, IsUUID, IsOptional, IsString } from "class-validator";
 
 export class Card {
   @Length(5, 50)
@@ -9,9 +9,9 @@ export class Card {
   @Length(0, 255)
   description: string;
 
-  @IsDefined()
-  @IsDateString()
-  due_date: string;
+  @IsOptional()
+  @IsString()
+  due_date?: string;
 
   @IsUUID()
   @IsNotEmpty()
