@@ -1,3 +1,5 @@
+// Las rutas es ":cardId , :boardId , listId", donde es un parámetro que representa el ID de su respectivo nombre.
+//Carlos Jimenez 30920188
 import { plainToClass } from "class-transformer";
 import { validateOrReject } from "class-validator";
 import dotenv from "dotenv";
@@ -164,22 +166,34 @@ app.post("/lists", async (req: Request, res: Response) => {
 });
 
 
-// Endpoint para obtener una tarjeta específica y el usuario que la creó (DOCUMENTAR)
-app.get("/cards/users", async (req: Request, res: Response) => {
+// Este endpoint es una ruta GET que se utiliza para obtener una tarjeta específica y el usuario que la creó.
+// La ruta es "/cards/:cardId/users", donde ":cardId" es un parámetro que representa el ID de la tarjeta.
+app.get("/cards/:cardId/users", async (req: Request, res: Response) => {
+  // Extraemos "cardId" de los parámetros de la solicitud.
   const { cardId } = req.params;
+
   try {
+    // Preparamos la consulta SQL para obtener el "userId" y "isOwner" de la tabla "card_users" donde "cardId" coincide con el parámetro proporcionado.
     const text = "SELECT userId, isOwner FROM card_users WHERE cardId = $1";
     const values = [cardId];
+
+    // Ejecutamos la consulta SQL.
     const result = await pool.query(text, values);
+
+    // Si la consulta es exitosa, devolvemos el resultado con un estado HTTP 200.
     res.status(200).json(result.rows);
   } catch (errors) {
+    // Si ocurre un error durante la consulta, devolvemos el error con un estado HTTP 400.
     return res.status(400).json(errors);
   }
 });
 
 
+
+
 // Endpoint para obtener las listas de un tablero específico (BIEN)
-app.get("/boards/lists", async (req: Request, res: Response) => {
+//Las rutas //:boardId son el ID del parametro que lo representa
+app.get("/boards/:boardId/lists", async (req: Request, res: Response) => {
   const { boardId } = req.params;
   try {
     // Se define la consulta SQL para obtener las listas de un tablero específico
@@ -198,63 +212,65 @@ app.get("/boards/lists", async (req: Request, res: Response) => {
 });
 
 
-// Endpoint para asignar un usuario a una tarjeta (BIEN)
-app.post("/cards/users/asignar", async (req: Request, res: Response) => {
-  // Se convierte el cuerpo de la solicitud a un objeto CardUser
+// Este endpoint es una ruta POST que se utiliza para asignar un usuario a una tarjeta específica.
+// La ruta es "/cards/:cardId/users/:userId", donde ":cardId" y ":userId" son parámetros que representan el ID de la tarjeta y el ID del usuario respectivamente.
+app.post("/cards/:cardId/users/:userId", async (req: Request, res: Response) => {
+  // Convertimos el cuerpo de la solicitud a un objeto de tipo "CardUser" y asignamos "cardId" al objeto "CardUser".
   let cardUserDto: CardUser = plainToClass(CardUser, req.body);
   cardUserDto.cardId = req.params.cardId;
 
   try {
-    // Se valida el objeto CardUser
+    // Validamos el objeto "cardUserDto" usando la función "validateOrReject".
     await validateOrReject(cardUserDto);
 
-    // Se define la consulta SQL para asignar un usuario a una tarjeta
+    // Preparamos la consulta SQL para insertar un nuevo usuario a una tarjeta en la base de datos.
     const text = "INSERT INTO card_users(cardId, userId, isOwner) VALUES($1, $2, $3) RETURNING *";
     const values = [cardUserDto.cardId, cardUserDto.userId, cardUserDto.isOwner];
     
-    // Se ejecuta la consulta SQL
+    // Ejecutamos la consulta SQL.
     const result = await pool.query(text, values);
     
-    // Si la consulta es exitosa, se devuelve un estado HTTP 201 (Created) y el nuevo usuario de la tarjeta
+    // Si la consulta es exitosa, devolvemos el resultado con un estado HTTP 201.
     res.status(201).json(result.rows[0]);
   } catch (errors) {
-    // Si ocurre un error durante la consulta o la validación, se devuelve un estado HTTP 422 (Unprocessable Entity) y los detalles del error
+    // Si ocurre un error durante la consulta, devolvemos el error con un estado HTTP 422.
     return res.status(422).json(errors);
   }
 });
 
-// Ruta para crear una nueva tarjeta en una lista específica (BIEN)
-app.post("/lists/cards", async (req: Request, res: Response) => {
-  // Extraer el ID de la lista de los parámetros de la solicitud
-  const { listId } = req.params;
 
-  // Agregar listId al cuerpo de la solicitud
+// Esta ruta POST se utiliza para crear una nueva tarjeta en una lista específica.
+// La ruta es "/lists/:listId/cards", donde ":listId" es un parámetro que representa el ID de la lista.
+app.post("/lists/:listId/cards", async (req: Request, res: Response) => {
+  // Extraemos "listId" de los parámetros de la solicitud y lo agregamos al cuerpo de la solicitud.
+  const { listId } = req.params;
   req.body.listId = listId;
 
-  // Convertir el cuerpo de la solicitud a una instancia de la clase Card
+  // Convertimos el cuerpo de la solicitud a un objeto de tipo "Card" usando la función "plainToClass".
   const cardDto: Card = plainToClass(Card, req.body);
 
   try {
-    // Validar la instancia de la tarjeta
+    // Validamos el objeto "cardDto" usando la función "validateOrReject".
     await validateOrReject(cardDto);
 
-    // Extraer los campos necesarios de la tarjeta
+    // Extraemos "title", "description" y "due_date" del objeto "cardDto".
     const { title, description, due_date } = cardDto;
 
-    // Preparar la consulta SQL para insertar la nueva tarjeta en la base de datos
+    // Preparamos la consulta SQL para insertar una nueva tarjeta en la base de datos.
     const text = "INSERT INTO cards(title, description, due_date, listId) VALUES($1, $2, $3, $4) RETURNING *";
     const values = [title, description, due_date, listId];
 
-    // Ejecutar la consulta SQL
+    // Ejecutamos la consulta SQL.
     const result = await pool.query(text, values);
 
-    // Enviar la respuesta con el estado 201 (creado) y la nueva tarjeta como cuerpo
+    // Si la consulta es exitosa, devolvemos el resultado con un estado HTTP 201.
     res.status(201).json(result.rows[0]);
   } catch (errors) {
-    // En caso de error, enviar la respuesta con el estado 422 (entidad no procesable) y los errores como cuerpo
+    // Si ocurre un error durante la consulta, devolvemos el error con un estado HTTP 422.
     return res.status(422).json(errors);
   }
 });
+
 
 
 app.listen(port, () => {
